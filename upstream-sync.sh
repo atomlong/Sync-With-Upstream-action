@@ -57,10 +57,10 @@ reset_git() {
 # fail if upstream_repository is not set in workflow
 if [ -z "${INPUT_UPSTREAM_REPOSITORY}" ]; then
     echo 'Workflow missing input value for "upstream_repository"' 1>&2
-    echo '      example: "upstream_repository: aormsby/fork-sync-with-upstream-action"' 1>&2
+    echo '      example: "upstream_repository: https://github.com/atomlong/Sync-With-Upstream-action"' 1>&2
     exit 1
 else
-    UPSTREAM_REPO="https://${GITHUB_ACTOR}:${INPUT_GITHUB_TOKEN}@github.com/${INPUT_UPSTREAM_REPOSITORY}.git"
+    UPSTREAM_REPO="${INPUT_UPSTREAM_REPOSITORY}"
 fi
 
 # set user credentials in git config
@@ -80,10 +80,8 @@ git remote add upstream "${UPSTREAM_REPO}"
 
 # check latest commit hashes for a match, exit if nothing to sync
 git fetch ${INPUT_GIT_FETCH_ARGS} upstream "${INPUT_UPSTREAM_BRANCH}"
-LOCAL_COMMIT_HASH=$(git rev-parse "${INPUT_TARGET_BRANCH}")
-UPSTREAM_COMMIT_HASH=$(git rev-parse upstream/"${INPUT_UPSTREAM_BRANCH}")
-
-if [ "${LOCAL_COMMIT_HASH}" = "${UPSTREAM_COMMIT_HASH}" ]; then
+NEW_COUNT=$(git rev-list upstream/${INPUT_UPSTREAM_BRANCH} ^${INPUT_TARGET_BRANCH} --count)
+if [ "${NEW_COUNT}" = "0" ]; then
     echo "::set-output name=has_new_commits::false"
     echo 'No new commits to sync, exiting' 1>&1
     reset_git
@@ -93,7 +91,7 @@ fi
 echo "::set-output name=has_new_commits::true"
 # display commits since last sync
 echo 'New commits being synced:' 1>&1
-git log upstream/"${INPUT_UPSTREAM_BRANCH}" "${LOCAL_COMMIT_HASH}"..HEAD ${INPUT_GIT_LOG_FORMAT_ARGS}
+git log upstream/"${INPUT_UPSTREAM_BRANCH}" ^${INPUT_TARGET_BRANCH} ${INPUT_GIT_LOG_FORMAT_ARGS}
 
 # sync from upstream to target_branch
 echo 'Syncing...' 1>&1
@@ -103,7 +101,11 @@ echo 'Sync successful' 1>&1
 
 # push to origin target_branch
 echo 'Pushing to target branch...' 1>&1
-git push ${INPUT_GIT_PUSH_ARGS} origin "${INPUT_TARGET_BRANCH}"
+while !(git push ${INPUT_GIT_PUSH_ARGS} origin "${INPUT_TARGET_BRANCH}"); do
+git fetch ${INPUT_GIT_FETCH_ARGS} origin "${INPUT_TARGET_BRANCH}"
+[ -z "$(git diff origin/${INPUT_TARGET_BRANCH} ^${INPUT_TARGET_BRANCH} --shortstat)" ] && break
+git pull ${INPUT_GIT_PULL_ARGS} origin "${INPUT_TARGET_BRANCH}"
+done
 echo 'Push successful' 1>&1
 
 # reset user credentials for future actions

@@ -12,7 +12,7 @@ inputs:
     required: false
 
   upstream_repository:
-    description: 'Upstream repository, e.g. => aormsby/Fork-Sync-With-Upstream-action'
+    description: 'Upstream repository, e.g. => https://github.com/atomlong/Fork-Sync-With-Upstream-action'
     required: true
 
   upstream_branch:

@@ -111,11 +111,11 @@ jobs:
     # Step 2: run this sync action - specify the upstream repo, upstream branch to sync with, and target sync branch
     - name: Pull (Fast-Forward) upstream changes
       id: sync
-      uses: aormsby/Fork-Sync-With-Upstream-action@v2.1
+      uses: atomlong/Sync-With-Upstream-action@master
       with:
-        upstream_repository: aormsby/hugo-deploy-to-pages
-        upstream_branch: main
-        target_branch: main
+        upstream_repository: https://github.com/atomlong/Fork-Sync-With-Upstream-action
+        upstream_branch: master
+        target_branch: master
         git_pull_args: --ff-only                    # optional arg use, defaults to simple 'pull'
         github_token: ${{ secrets.GITHUB_TOKEN }}   # optional, for accessing repos that require authentication
 
