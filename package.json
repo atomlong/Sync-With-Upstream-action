@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aormsby/fork-sync-with-upstream-action.git"
+    "url": "git+https://github.com/atomlong/Fork-Sync-With-Upstream-action.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/aormsby/fork-sync-with-upstream-action/issues"
+    "url": "https://github.com/atomlong/Fork-Sync-With-Upstream-action/issues"
   },
-  "homepage": "https://github.com/aormsby/fork-sync-with-upstream-action#readme",
+  "homepage": "https://github.com/atomlong/Fork-Sync-With-Upstream-action#readme",
   "dependencies": {
     "@actions/core": "^1.2.4",
     "@actions/exec": "^1.0.4"
