@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -e
 # do not quote GIT_PULL_ARGS or GIT_*_ARGS. As they may contain
 # more than one argument.
 
@@ -66,29 +65,41 @@ fi
 # set user credentials in git config
 config_git
 
-# ensure target_branch is checked out
-if [ $(git branch --show-current) != "${INPUT_TARGET_BRANCH}" ]; then
-    git checkout ${INPUT_GIT_CHECKOUT_ARGS} "${INPUT_TARGET_BRANCH}"
-    echo 'Target branch ' ${INPUT_TARGET_BRANCH} ' checked out' 1>&1
-fi
+has_new_commits="false"
 
 # set upstream to upstream_repository
 git remote add upstream "${UPSTREAM_REPO}"
+git fetch ${INPUT_GIT_FETCH_ARGS} upstream
+
+ALL_UPSTREAM_BRANCH=($(git branch -a | grep -Po '\s*remotes/upstream/\K((?!HEAD)\S)+'))
+ALL_TARGET_BRANCH=($(git branch -a | grep -Po '\s*remotes/origin/\K((?!HEAD)\S)+'))
+
+for INPUT_UPSTREAM_BRANCH in ${ALL_UPSTREAM_BRANCH[@]}; do
+INPUT_TARGET_BRANCH=${INPUT_UPSTREAM_BRANCH}
+
+# ensure target_branch is checked out
+grep -Pq "(?<=^|\s)${INPUT_TARGET_BRANCH}(?=\s|$)" <<< ${ALL_TARGET_BRANCH[*]} && {
+[ $(git branch --show-current) = "${INPUT_TARGET_BRANCH}" ] || 
+git checkout ${INPUT_GIT_CHECKOUT_ARGS} -t origin/${INPUT_TARGET_BRANCH}
+echo 'Target branch ' ${INPUT_TARGET_BRANCH} ' checked out' 1>&1
+} || {
+git checkout ${INPUT_GIT_CHECKOUT_ARGS} -b ${INPUT_TARGET_BRANCH} remotes/upstream/${INPUT_UPSTREAM_BRANCH}
+git push ${INPUT_GIT_PUSH_ARGS} origin ${INPUT_TARGET_BRANCH}:${INPUT_TARGET_BRANCH}
+echo 'New branch ' ${INPUT_TARGET_BRANCH} ' checked out' 1>&1
+}
 
 # check remotes in case of error
 # git remote -v
 
 # check latest commit hashes for a match, exit if nothing to sync
-git fetch ${INPUT_GIT_FETCH_ARGS} upstream "${INPUT_UPSTREAM_BRANCH}"
 NEW_COUNT=$(git rev-list upstream/${INPUT_UPSTREAM_BRANCH} ^${INPUT_TARGET_BRANCH} --count)
 if [ "${NEW_COUNT}" = "0" ]; then
-    echo "::set-output name=has_new_commits::false"
-    echo 'No new commits to sync, exiting' 1>&1
-    reset_git
-    exit 0
+    echo "No new commits to sync on branch '${INPUT_TARGET_BRANCH}'" 1>&1
+    continue
 fi
 
-echo "::set-output name=has_new_commits::true"
+has_new_commits="true"
+
 # display commits since last sync
 echo 'New commits being synced:' 1>&1
 git log upstream/"${INPUT_UPSTREAM_BRANCH}" ^${INPUT_TARGET_BRANCH} ${INPUT_GIT_LOG_FORMAT_ARGS}
@@ -107,6 +118,10 @@ git fetch ${INPUT_GIT_FETCH_ARGS} origin "${INPUT_TARGET_BRANCH}"
 git pull ${INPUT_GIT_PULL_ARGS} origin "${INPUT_TARGET_BRANCH}"
 done
 echo 'Push successful' 1>&1
+
+done
+
+echo "::set-output name=has_new_commits::${has_new_commits}"
 
 # reset user credentials for future actions
 reset_git

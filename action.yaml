@@ -17,11 +17,13 @@ inputs:
 
   upstream_branch:
     description: 'Branch to sync from, e.g. => main, master, dev'
-    required: true
+    required: false
+    default: ''
 
   target_branch:
     description: 'Branch to push to, e.g. => main, master, prod'
-    required: true
+    required: false
+    default: ''
 
   git_checkout_args:
     description: 'Any extra args to pass to `git checkout` like --recurse-submodules (only used when current branch is not target_branch), default = ""'
