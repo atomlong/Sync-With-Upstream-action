@@ -96,7 +96,20 @@ git log upstream/"${INPUT_UPSTREAM_BRANCH}" ^${INPUT_TARGET_BRANCH} ${INPUT_GIT_
 # sync from upstream to target_branch
 echo 'Syncing...' 1>&1
 # pull_args examples: "--ff-only", "--tags"
-git pull --no-edit ${INPUT_GIT_PULL_ARGS} upstream "${INPUT_UPSTREAM_BRANCH}"
+RET_MSG=$( { git pull --no-edit ${INPUT_GIT_PULL_ARGS} upstream "${INPUT_UPSTREAM_BRANCH}" 2>&1; echo "$?" >/tmp/RET_VAL.$$; } | tee >(cat - >&2) )
+RET_VAL=$(cat /tmp/RET_VAL.$$)
+rm -f /tmp/RET_VAL.$$
+[ "${RET_VAL}" != 0 ] && {
+echo 'Sync failed' 1>&1
+git reset --hard origin/${INPUT_TARGET_BRANCH}
+git checkout ${INPUT_GIT_CHECKOUT_ARGS} "${INPUT_TARGET_BRANCH}"
+rm -fr ".git/rebase-merge"
+RET_MSG=${RET_MSG//$'\r'/$'\n'}
+RET_MSG="<p><font color=\"red\">Sync Failed</font></p><p>Error Message:</p><p><font style=\"background-color: gray;\">$(sed -r 's|^.*$|<br />&|' <<< ${RET_MSG})</font></p>"
+RET_MSG="${RET_MSG//$'\n'/}"
+echo "::set-output name=error_message::${RET_MSG}"
+echo "::set-output name=has_new_commits::false"
+} || {
 echo 'Sync successful' 1>&1
 
 # push to origin target_branch
@@ -107,6 +120,6 @@ git fetch ${INPUT_GIT_FETCH_ARGS} origin "${INPUT_TARGET_BRANCH}"
 git pull ${INPUT_GIT_PULL_ARGS} origin "${INPUT_TARGET_BRANCH}"
 done
 echo 'Push successful' 1>&1
-
+}
 # reset user credentials for future actions
 reset_git
