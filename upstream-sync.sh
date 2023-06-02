@@ -82,13 +82,13 @@ git remote add upstream "${UPSTREAM_REPO}"
 git fetch ${INPUT_GIT_FETCH_ARGS} upstream "${INPUT_UPSTREAM_BRANCH}"
 NEW_COUNT=$(git rev-list upstream/${INPUT_UPSTREAM_BRANCH} ^${INPUT_TARGET_BRANCH} --count)
 if [ "${NEW_COUNT}" = "0" ]; then
-    echo "::set-output name=has_new_commits::false"
+    echo "has_new_commits=false" >>${GITHUB_OUTPUT}
     echo 'No new commits to sync, exiting' 1>&1
     reset_git
     exit 0
 fi
 
-echo "::set-output name=has_new_commits::true"
+echo "has_new_commits=true" >>${GITHUB_OUTPUT}
 # display commits since last sync
 echo 'New commits being synced:' 1>&1
 git log upstream/"${INPUT_UPSTREAM_BRANCH}" ^${INPUT_TARGET_BRANCH} ${INPUT_GIT_LOG_FORMAT_ARGS}
@@ -107,8 +107,8 @@ rm -fr ".git/rebase-merge"
 RET_MSG=${RET_MSG//$'\r'/$'\n'}
 RET_MSG="<p><font color=\"red\">Sync Failed</font></p><p>Error Message:</p><p><font style=\"background-color: gray;\">$(sed -r 's|^.*$|<br />&|' <<< ${RET_MSG})</font></p>"
 RET_MSG="${RET_MSG//$'\n'/}"
-echo "::set-output name=error_message::${RET_MSG}"
-echo "::set-output name=has_new_commits::false"
+echo "error_message=${RET_MSG}" >>${GITHUB_OUTPUT}
+echo "has_new_commits=false" >>${GITHUB_OUTPUT}
 } || {
 echo 'Sync successful' 1>&1
 
