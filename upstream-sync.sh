@@ -121,5 +121,9 @@ git pull ${INPUT_GIT_PULL_ARGS} origin "${INPUT_TARGET_BRANCH}"
 done
 echo 'Push successful' 1>&1
 }
+
+# remove upstream remote
+git remote remove upstream
+
 # reset user credentials for future actions
 reset_git
